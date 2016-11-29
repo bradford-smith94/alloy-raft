@@ -10,8 +10,8 @@ open util/boolean
 
 abstract sig Time{}
 sig State extends Time{}{
-    -- State must be a part of some election Term
-    some @states.this
+    -- State must be a part of only one election Term
+    one @states.this
 }
 sig Term extends Time{
     states: set State
@@ -33,9 +33,17 @@ sig Node{
 }
 
 fact {
+    /* Terms and States are ordered, that is, a Term contains only States from
+     * before those contained in the next Term
+     */
+    all t1, t2: Term | all s1, s2: State |
+        (lt[t1, t2] and s1 in t1.states and s2 in t2.states) => lt[s1, s2]
+}
+
+fact {
     -- there can be only one leader for every election Term
     -- all t: Term | all n: Node | one n.term & t && isTrue[n.leader]
 }
 
 pred show{}
-run show for 5 but exactly 2 Node
+run show for 5 but exactly 2 Node, 2 Term
