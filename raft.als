@@ -29,9 +29,7 @@ fact {
      * before those contained in the next Term
      */
     all t1, t2: Term | all s1, s2: State |
-        ((lt[t1, t2] and s1 in t1.states and s2 in t2.states) => lt[s1, s2]) and
-        ((gt[t1, t2] and s1 in t1.states and s2 in t2.states) => gt[s1, s2])
-    -- TODO: might not need the greater than line, candidate for cleanup
+        (lt[t1, t2] and s1 in t1.states and s2 in t2.states) => lt[s1, s2]
 }
 
 assert StatesInOrder {
