@@ -1,6 +1,6 @@
 /* Bradford Smith (bsmith8)
  * CS 810B Final Project raft.als
- * 12/06/2016
+ * 12/07/2016
  */
 
 module raft
@@ -15,7 +15,7 @@ sig State{}{
 }
 sig Term{
     states: set State,
-    leader: set State -> lone Node
+    leader: one Node
 }{
     -- election Term must have some states
     some states
@@ -36,14 +36,11 @@ fact {
 }
 
 fact {
-    -- there can be at most one leader for every election Term
-    all t: Term | some s: State | s in t.states and one t.leader[s] & Node
-    -- TODO: node will stay leader for the rest of term
-
-    -- a Node that is leader of one term implies that Node will not be leader
-    -- next term (otherwise we wouldn't have needed an election)
-    all n: Node | some t: Term | some t.leader.n => no next[t].leader.n
+    /* a Node that is leader of one term implies that Node will not be leader
+     * next term (otherwise we wouldn't have needed an election)
+     */
+    all n: Node | all t: Term | some t.leader & n => no next[t].leader & n
 }
 
 pred show{}
-run show for 5 but exactly 2 Node, 2 Term
+run show for 5 but exactly 2 Node, 3 Term
