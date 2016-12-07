@@ -32,8 +32,13 @@ fact {
         ((lt[t1, t2] and s1 in t1.states and s2 in t2.states) => lt[s1, s2]) and
         ((gt[t1, t2] and s1 in t1.states and s2 in t2.states) => gt[s1, s2])
     -- TODO: might not need the greater than line, candidate for cleanup
-    -- TODO: need to make sure States can't go out of order between Terms: State0 -> State3 is possible
 }
+
+assert StatesInOrder {
+    all s1, s2, s3: State | all t: Term |
+        lt[s1, s2] and lt[s2, s3] and s1 in t.states and s3 in t.states => s2 in t.states
+}
+check StatesInOrder for 40
 
 fact {
     /* a Node that is leader of one term implies that Node will not be leader
