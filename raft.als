@@ -1,6 +1,6 @@
 /* Bradford Smith (bsmith8)
  * CS 810B Final Project raft.als
- * 12/07/2016
+ * 12/08/2016
  */
 
 module raft
@@ -45,5 +45,12 @@ fact {
     all n: Node | all t: Term | some t.leader & n => no next[t].leader & n
 }
 
-pred show{}
+pred Consensus [s: State] {
+    -- all Nodes have the same value
+    all n1, n2: Node | n1.value[s] = n2.value[s]
+}
+
+pred show{
+    Consensus[last] -- include Consensus in last state (for now)
+}
 run show for 5 but exactly 2 Node, 3 Term
