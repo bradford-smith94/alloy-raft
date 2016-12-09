@@ -1,13 +1,12 @@
 /* Bradford Smith (bsmith8)
  * CS 810B Final Project raft.als
- * 12/08/2016
+ * 12/09/2016
  */
 
 module raft
 
 open util/ordering[Term]
 open util/ordering[State]
--- open util/boolean
 
 sig State{}{
     -- State must be a part of only one election Term
@@ -34,7 +33,8 @@ fact {
 
 assert StatesInOrder {
     all s1, s2, s3: State | all t: Term |
-        lt[s1, s2] and lt[s2, s3] and s1 in t.states and s3 in t.states => s2 in t.states
+        lt[s1, s2] and lt[s2, s3] and s1 in t.states and
+        s3 in t.states => s2 in t.states
 }
 check StatesInOrder for 40
 
@@ -50,7 +50,15 @@ pred Consensus [s: State] {
     all n1, n2: Node | n1.value[s] = n2.value[s]
 }
 
+pred Update [s: State, v: Int] {
+    -- updates go through the leader Node
+    states.s.leader.value[s] = v
+    some s1: State | all n: Node |
+        s1 in states.s.states and gt[s1, s] and Consensus[s1] and
+        n.value[s1] = v
+}
+
 pred show{
-    Consensus[last] -- include Consensus in last state (for now)
+    some s: State | some v: Int | Update[s, v]
 }
 run show for 5 but exactly 2 Node, 3 Term
