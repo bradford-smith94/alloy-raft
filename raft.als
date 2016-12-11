@@ -43,15 +43,18 @@ assert StatesInOrder {
 check StatesInOrder for 10
 
 
+/* TODO this may over-constrain the model, for some reason it prevents the
+ * 'show' predicate from producing an instance
 fact {
     -- only leaders send update messages
-    all s: State | all v: Int | some s.message => s.message = states.s.leader -> v
+    all s: State | some s.message => s.message = states.s.leader -> Int
 }
 
 assert NoFollowerMessages {
-    all s: State | all n: Node | all v: Int | no n & states.s.leader => s.message != n -> v
+    all s: State | all n: Node | no n & states.s.leader => s.message != n -> Int
 }
 check NoFollowerMessages for 10
+*/
 
 
 fact {
@@ -99,11 +102,11 @@ pred Update [s: State, v: Int] {
 }
 
 assert ConsensusAfterUpdate {
-    all s1, s2: State | all v: Int | lt[s1, s2] and Update[s1, v] and Consensus[s2]
+    all s1, s2: State | some v: Int | lt[s1, s2] and Update[s1, v] and Consensus[s2]
 }
 check ConsensusAfterUpdate for 10
 
 pred show{
-    some s: State | all v: Int | Update[s, v]
+    some s: State | some v: Int | Update[s, v]
 }
 run show for 6 but exactly 2 Node, 3 Term
