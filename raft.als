@@ -1,6 +1,6 @@
 /* Bradford Smith (bsmith8)
  * CS 810B Final Project raft.als
- * 12/09/2016
+ * 12/10/2016
  */
 
 module raft
@@ -44,6 +44,13 @@ fact {
      */
     all n: Node | all t: Term | some t.leader & n => no next[t].leader & n
 }
+
+assert NoConsecutiveLeaders {
+    all n: Node | all t: Term | some t.leader & n => (no next[t].leader & n and
+        no prev[t].leader & n)
+}
+check NoConsecutiveLeaders for 10
+
 
 pred Consensus [s: State] {
     -- all Nodes have the same value
