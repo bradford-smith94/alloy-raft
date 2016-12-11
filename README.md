@@ -19,12 +19,12 @@ by. While a Term is essentially the lifetime of a leader Node (almost analogous
 to Raft's definition of a Term with the exception that the model doesn't handle
 elections at this time).
 
+States may also hold messages from the leader of the current Term. These
+messages are just a single value that all follower Nodes should update to.
+
 ###Storing and Updating Values
 Nodes currently store a single value (rather than the log in Raft) as an
 integer. The update process for the model currently specifies that at some time
-the leader is updated to a value and at some time in the same Term after that
-the Nodes reach consensus on that value.
-
-###Issues
-Currently Nodes can change values at random, they need to be restricted so that
-values can only change through the update process.
+the leader is updated to a value and sends out a message telling follower Nodes
+to update to that value. At some time in the same Term after that the Nodes
+reach consensus on that value.
