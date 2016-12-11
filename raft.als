@@ -1,6 +1,6 @@
 /* Bradford Smith (bsmith8)
  * CS 810B Final Project raft.als
- * 12/10/2016
+ * 12/11/2016
  */
 
 module raft
@@ -21,6 +21,7 @@ sig Term{
 }{
     -- election Term must have some states
     some states
+    #states > 1
 }
 sig Node{
     value: State -> one Int -- a node has one value at a given state
@@ -40,6 +41,17 @@ assert StatesInOrder {
         s3 in t.states => s2 in t.states
 }
 check StatesInOrder for 10
+
+
+fact {
+    -- only leaders send update messages
+    all s: State | all v: Int | some s.message => s.message = states.s.leader -> v
+}
+
+assert NoFollowerMessages {
+    all s: State | all n: Node | all v: Int | no n & states.s.leader => s.message != n -> v
+}
+check NoFollowerMessages for 10
 
 
 fact {
@@ -83,10 +95,15 @@ pred Update [s: State, v: Int] {
     -- updates go through the leader Node
     states.s.leader.value[s] = v
     s.message = states.s.leader -> v
-    some s1: State | s1 in states.s.states and gt[s1, s] and Consensus[s1]
+    -- some s1: State | s1 in states.s.states and gt[s1, s] and Consensus[s1]
 }
 
-pred show{
-    some s: State | some v: Int | Update[s, v]
+assert ConsensusAfterUpdate {
+    all s1, s2: State | all v: Int | lt[s1, s2] and Update[s1, v] and Consensus[s2]
 }
-run show for 5 but exactly 2 Node, 3 Term
+check ConsensusAfterUpdate for 10
+
+pred show{
+    some s: State | all v: Int | Update[s, v]
+}
+run show for 6 but exactly 2 Node, 3 Term
