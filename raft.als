@@ -14,6 +14,7 @@ sig State{
     -- State must be a part of only one election Term
     one @states.this
 }
+
 sig Term{
     states: set State,
     leader: one Node
@@ -22,19 +23,34 @@ sig Term{
     some states
     #states > 1
 
-    -- Term has contiguous states
+    /* Term has contiguous states (no triplet of States such that the middle
+     * State is not in the same Term)
+     */
     no s1, s2, s3: State | s1 in states and s3 in states and s2 !in states and
         between[s2, s1, s3]
 }
+
 sig Node{
-    value: State -> one Int -- a node has one value at a given state
+    value: State -> one Int -- a node has one value at a given State
 }
 
--- State s2 is between s1 and s3
+
 pred between[s2, s1, s3: State] {
+    -- State s2 is between s1 and s3
     lt[s1, s2]
     lt[s2, s3]
 }
+
+pred inTerm[s1, s2: State] {
+    -- State s1 and s2 are in the same Term
+    states.s1 = states.s2
+}
+
+pred isLeader[n: Node, s: State] {
+    -- Node n is the leader during State s
+    states.s.leader = n
+}
+
 
 assert StatesInOrder {
     all s1, s2, s3: State | all t: Term |
@@ -52,44 +68,48 @@ fact {
 }
 
 assert NoFollowerMessages {
-    all s: State | all n: Node | no n & states.s.leader => s.message != n -> Int
+    all s: State | all n: Node | !isLeader[n, s] => s.message != n -> Int
 }
 check NoFollowerMessages for 10
 */
 
 
 fact {
-    /* a Node that is leader of one term implies that Node will not be leader
-     * next term (otherwise we wouldn't have needed an election)
+    /* there are no two States that are not in the same Term such that a Node is
+     * the leader in both Terms (otherwise we wouldn't have needed to change to
+     * another Term)
      */
-    no s1, s2: State | lt[s1, s2] and states.s1 != states.s2 and
+    no s1, s2: State | lt[s1, s2] and !inTerm[s1, s2] and
         states.s1.leader = states.s2.leader
 }
 
 assert NoConsecutiveLeaders {
     all n: Node | all s1, s2, s3: State | between[s2, s1, s3] and
-        states.s2 != states.s1 and states.s2 != states.s3 and
-        some states.s2.leader & n => (no states.s1.leader & n and
-        no states.s3.leader & n)
+        !inTerm[s1, s2] and !inTerm[s2, s3] and isLeader[n, s2] =>
+        (!isLeader[n, s1] and !isLeader[n, s3])
 }
 check NoConsecutiveLeaders for 10
 
 
 pred Consensus [s: State] {
     -- all Nodes have the same value
-    all n1, n2: Node | n1.value[s] = n2.value[s]
+    all disj n1, n2: Node | n1.value[s] = n2.value[s]
 }
 
 fact {
     -- a Node's value only changes if the leader told it to
 
-    -- if a Node's value has changed, then the leader must have told it to
-    all s1, s2: State | all n: Node | lt[s1, s2] and n.value[s1] != n.value[s2]
-        => s1.message = states.s1.leader -> n.value[s2]
+    /* if a Node's value has changed, and that Node is not a leader, then the
+     * leader must have told it to
+     */
+    all s1, s2: State | all n: Node | (lt[s1, s2] and !isLeader[n, s1] and
+        !isLeader[n, s2] and n.value[s1] != n.value[s2]) =>
+        s1.message = states.s1.leader -> n.value[s2]
 
     -- if the leader tells Nodes to change value, they must
-    all s1, s2: State | all n: Node | some v: Int | lt[s1, s2] and
-        s1.message = states.s1.leader -> v =>
+    all s1, s2: State | all n: Node | all v: Int | (lt[s1, s2] and
+        !isLeader[n, s1] and !isLeader[n, s2] and
+        s1.message = states.s1.leader -> v) =>
         n.value[s2] = v
 
     -- a leader can only send a message with it's value
@@ -100,17 +120,20 @@ fact {
 
 pred Update [s1, s2: State, v: Int] {
     -- updates go through the leader Node
+    inTerm[s1, s2]
     s2 = s1.next
     states.s2.leader.value[s2] = v
     s2.message = states.s2.leader -> v
 }
 
 assert ConsensusAfterUpdate {
-    all s1, s2, s3: State | some v: Int | lt[s2, s3] and Update[s1, s2, v] and Consensus[s3]
+    all s1, s2, s3: State | all v: Int | (between[s2, s1, s3] and
+        inTerm[s1, s2] and inTerm[s2, s3] and Update[s1, s2, v]) =>
+        Consensus[s3]
 }
 check ConsensusAfterUpdate for 10
 
 pred show{
-    some s1, s2: State | some v: Int | Update[s1, s2, v]
+    some s1, s2: State | some v: Int | inTerm[s1, s2] and Update[s1, s2, v]
 }
 run show for 6 but exactly 2 Node, 3 Term
