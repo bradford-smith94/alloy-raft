@@ -82,9 +82,8 @@ fact {
 }
 
 assert NoConsecutiveLeaders {
-    all n: Node | all s1, s2, s3: State | between[s2, s1, s3] and
-        !inTerm[s1, s2] and !inTerm[s2, s3] and isLeader[n, s2] =>
-        (!isLeader[n, s1] and !isLeader[n, s3])
+    all n: Node | all s1, s2: State | !inTerm[s1, s2] and s2 = s1.next and
+        isLeader[n, s2] => !isLeader[n, s1]
 }
 check NoConsecutiveLeaders for 10
 
