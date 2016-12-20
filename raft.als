@@ -1,11 +1,10 @@
 /* Bradford Smith (bsmith8)
  * CS 810B Final Project raft.als
- * 12/11/2016
+ * 12/20/2016
  */
 
 module raft
 
-open util/ordering[Term]
 open util/ordering[State]
 
 sig State{
@@ -22,17 +21,19 @@ sig Term{
     -- election Term must have some states
     some states
     #states > 1
+
+    -- Term has contiguous states
+    no s1, s2, s3: State | s1 in states and s3 in states and s2 !in states and
+        between[s2, s1, s3]
 }
 sig Node{
     value: State -> one Int -- a node has one value at a given state
 }
 
-fact {
-    /* Terms and States are ordered, that is, a Term contains only States from
-     * before those contained in the next Term
-     */
-    all t1, t2: Term | all s1, s2: State |
-        (lt[t1, t2] and s1 in t1.states and s2 in t2.states) => lt[s1, s2]
+-- State s2 is between s1 and s3
+pred between[s2, s1, s3: State] {
+    lt[s1, s2]
+    lt[s2, s3]
 }
 
 assert StatesInOrder {
@@ -61,12 +62,15 @@ fact {
     /* a Node that is leader of one term implies that Node will not be leader
      * next term (otherwise we wouldn't have needed an election)
      */
-    all n: Node | all t: Term | some t.leader & n => no next[t].leader & n
+    no s1, s2: State | lt[s1, s2] and states.s1 != states.s2 and
+        states.s1.leader = states.s2.leader
 }
 
 assert NoConsecutiveLeaders {
-    all n: Node | all t: Term | some t.leader & n => (no next[t].leader & n and
-        no prev[t].leader & n)
+    all n: Node | all s1, s2, s3: State | between[s2, s1, s3] and
+        states.s2 != states.s1 and states.s2 != states.s3 and
+        some states.s2.leader & n => (no states.s1.leader & n and
+        no states.s3.leader & n)
 }
 check NoConsecutiveLeaders for 10
 
@@ -94,19 +98,19 @@ fact {
 }
 
 
-pred Update [s: State, v: Int] {
+pred Update [s1, s2: State, v: Int] {
     -- updates go through the leader Node
-    states.s.leader.value[s] = v
-    s.message = states.s.leader -> v
-    -- some s1: State | s1 in states.s.states and gt[s1, s] and Consensus[s1]
+    s2 = s1.next
+    states.s2.leader.value[s2] = v
+    s2.message = states.s2.leader -> v
 }
 
 assert ConsensusAfterUpdate {
-    all s1, s2: State | some v: Int | lt[s1, s2] and Update[s1, v] and Consensus[s2]
+    all s1, s2, s3: State | some v: Int | lt[s2, s3] and Update[s1, s2, v] and Consensus[s3]
 }
 check ConsensusAfterUpdate for 10
 
 pred show{
-    some s: State | some v: Int | Update[s, v]
+    some s1, s2: State | some v: Int | Update[s1, s2, v]
 }
 run show for 6 but exactly 2 Node, 3 Term
