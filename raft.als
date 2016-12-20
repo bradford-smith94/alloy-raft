@@ -112,28 +112,36 @@ fact {
         s1.message = states.s1.leader -> v) =>
         n.value[s2] = v
 
+    -- if the leader's value changes it must send a message
+    all s1, s2: State | all n: Node | (lt[s1, s2] and isLeader[n, s1] and
+        isLeader[n, s2] and n.value[s1] != n.value[s2]) =>
+        s2.message = n -> n.value[s2]
+
     -- a leader can only send a message with it's value
     all s: State | all v: Int | some s.message.v =>
         states.s.leader.value[s] = v
 }
 
 
-pred Update [s1, s2: State, v: Int] {
+pred Update [s1, s2: State] {
     -- updates go through the leader Node
     inTerm[s1, s2]
     s2 = s1.next
-    states.s2.leader.value[s2] = v
-    s2.message = states.s2.leader -> v
+    states.s2.leader.value[s2] = plus[states.s1.leader.value[s1], 1]
+    s2.message = states.s2.leader -> plus[states.s1.leader.value[s1], 1]
 }
 
 assert ConsensusAfterUpdate {
-    all s1, s2, s3: State | all v: Int | (between[s2, s1, s3] and
-        inTerm[s1, s2] and inTerm[s2, s3] and Update[s1, s2, v]) =>
-        Consensus[s3]
+    all s1, s2, s3: State | (between[s2, s1, s3] and inTerm[s1, s2] and
+        inTerm[s2, s3] and Update[s1, s2]) => Consensus[s3]
 }
 check ConsensusAfterUpdate for 10
 
 pred show{
-    some s1, s2: State | some v: Int | inTerm[s1, s2] and Update[s1, s2, v]
+    /* this will show us at least some pair of States in the same Term in which
+     * an Update takes place, there should be Consensus at some point after the
+     * update
+     */
+    some s1, s2: State | inTerm[s1, s2] and Update[s1, s2]
 }
 run show for 6 but exactly 2 Node, 3 Term
