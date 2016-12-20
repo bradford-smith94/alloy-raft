@@ -60,26 +60,24 @@ assert StatesInOrder {
 check StatesInOrder for 10
 
 
-/* TODO this may over-constrain the model, for some reason it prevents the
- * 'show' predicate from producing an instance
 fact {
     -- only leaders send update messages
-    all s: State | some s.message => s.message = states.s.leader -> Int
+    all s: State | all n: Node | some v: Int | (isLeader[n, s] and
+        some s.message) => s.message = n -> v
 }
 
 assert NoFollowerMessages {
-    all s: State | all n: Node | !isLeader[n, s] => s.message != n -> Int
+    no s: State | all n: Node | !isLeader[n, s] => s.message = n -> Int
 }
 check NoFollowerMessages for 10
-*/
 
 
 fact {
-    /* there are no two States that are not in the same Term such that a Node is
-     * the leader in both Terms (otherwise we wouldn't have needed to change to
-     * another Term)
+    /* there are no two States directly after one another that are not in the
+     * same Term such that a Node is the leader in both Terms (otherwise we
+     * wouldn't have needed to change to another Term)
      */
-    no s1, s2: State | lt[s1, s2] and !inTerm[s1, s2] and
+    no s1, s2: State | s2 = s1.next and !inTerm[s1, s2] and
         states.s1.leader = states.s2.leader
 }
 
@@ -125,6 +123,7 @@ fact {
 
 pred Update [s1, s2: State] {
     -- updates go through the leader Node
+    Consensus[s1]
     inTerm[s1, s2]
     s2 = s1.next
     states.s2.leader.value[s2] = plus[states.s1.leader.value[s1], 1]
