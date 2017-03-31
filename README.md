@@ -1,14 +1,19 @@
-#Alloy Model of the Raft Consensus Algorithm
+# Alloy Model of the Raft Consensus Algorithm
 An attempt at creating a simple model of the Raft Consensus Algorithm in
 [Alloy](http://alloy.mit.edu/alloy/).
 
-##Raft
+This project started its life as a semester project for the course CS 810B
+Modeling and Analysis of Software Security.  The tag `v0.1` represents the
+project's state as I submitted it for the course. It may or may not evolve from
+there.
+
+## Raft
 The [Raft Consensus Algorithm](https://raft.github.io/) is designed to be an
 easy to understand distributed consensus algorithm. There is a great
 visualization of how it operates at
 [thesecretlivesofdata.com/raft/](http://thesecretlivesofdata.com/raft/).
 
-##My Model
+## My Model
 As it currently stands this model breaks time into two categories:
 
 - States
@@ -19,15 +24,15 @@ by. While a Term is essentially the lifetime of a leader Node (almost analogous
 to Raft's definition of a Term with the exception that the model doesn't handle
 elections at this time).
 
-The State signature is the only one making use of Alloy's builtin util/ordering.
-Terms are constrained to have only contiguous States. Terms do not use
-util/ordering in order to keep the model relatively simple.
+The State signature is the only one making use of Alloy's builtin
+`util/ordering`.  Terms are constrained to have only contiguous States. Terms do
+not use `util/ordering` in order to keep the model relatively simple.
 
 States may also hold messages from the leader of the current Term. These
 messages are just a relation from the leader to a single value that all follower
 Nodes should update to.
 
-###Storing and Updating Values
+### Storing and Updating Values
 Nodes currently store a single value (rather than the log in Raft) as an
 integer. The update process for the model currently specifies that at some time
 the leader is updated and sends out a message telling follower Nodes to update
@@ -47,7 +52,7 @@ changing the leader's value too much (i.e. the 'ConsensusAfterUpdate' assertion
 previously would not hold because the leader's value changed immediately after
 starting the update).
 
-###The 'show' Predicate
+### The 'show' Predicate
 The 'show' predicate is setup to have at least some pair of States in the same
 Term for which an update takes place, after which the two Nodes should reach
 'Consensus' because the 'ConsensusAfterUpdate' assertion holds. After this point
